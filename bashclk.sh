@@ -3,10 +3,20 @@ set -e
 
 # Constants
 get_time=$(date +%s)sec
-datetime=$(echo date_time)
-time_offset=${3}
-time_offset_min=${3}*60
 time_offset_hour=${3}*3600
+time_offset_sec=${3}
+time_offset_min=${3}*60
+today=$(date +%s)
+date_today=$(date +%m%d%Y)
+time_hour=${3}*3600
+time_minute=${5}*60
+time_second=${7}
+check_bash=$(pgrep -f "bashclk.sh timer")
+pid_firstbash=$(pgrep -f "bashclk.sh timer" | head -1)
+pid_secondbash=$(pgrep -f "bashclk.sh timer" | head -2 | tail -1)
+pid_thirdbash=$(pgrep -f "bashclk.sh timer" | head -3 | tail -1)
+pid_fourthbash=$(pgrep -f "bashclk.sh timer" | head -4 | tail -1)
+bashline_count=$(pgrep -f "bashclk.sh timer" | wc -l)
 
 # Current Version
 current_version()
@@ -37,6 +47,8 @@ div_floor () {
     RESULT=$(( ( ${DIVIDEND} - ( ${DIVIDEND} % ${DIVISOR}) )/${DIVISOR} ))
     echo ${RESULT}
 }
+# Mark the function as exported
+declare -fx div_floor
 
 time_count(){
     s=${1}
@@ -57,7 +69,10 @@ time_count(){
     MIN=59
     HOUR=$((HOUR-1))
     done
+    echo -e " \033[31;5mTime is Up!!\033[0m";
 }
+# Mark the function as exported
+declare -fx time_count
 
 # Continously show the date and time
 date_time()
@@ -84,6 +99,7 @@ while getopts ":h :v" option; do
     esac
 done
 
+# -------------------------STOPWATCH-------------------------------------
 # Stopwatch
 if [[ "$1" == 'check' && "$2" == 'stopwatch' ]]; then
     echo "STOPWATCH"
@@ -92,9 +108,47 @@ if [[ "$1" == 'check' && "$2" == 'stopwatch' ]]; then
         sleep 0.1
     done
 fi
-
+# -------------------------DATETIME-------------------------------------
 # Datetime
 if [[ "$1" == 'check' && "$2" == 'datetime' ]]; then
     echo "DATE TIME"
     date_time
+fi
+# -------------------------TIMER-------------------------------------
+# Set timer
+if [[ "$1" == 'timer' && "$2" == "-h" && "$4" == "-m" && "$6" == "-s" ]]; then
+    rm -rf ./logs/timer.log     # delete the old contents of the log file
+    time_offset_all=$(( $time_hour + $time_minute + $time_second ))
+    time_count $time_offset_all | tee ./logs/timer.log | tail -1 &  # put the output in a file and display output once done
+fi
+# Checking timer
+if [[ $1 = "check" && $2 = "timer" ]];then
+    # Limit to 5 timer to set
+    if [[ $bashline_count == 5 ]]; then
+        kill -9 $pid_firstbash
+        kill -9 $pid_secondbash
+        kill -9 $pid_thirdbash
+        kill -9 $pid_fourthbash
+        nl ./logs/timer.log | tail -1
+    elif [[ $bashline_count == 4 ]]; then
+        kill -9 $pid_firstbash
+        kill -9 $pid_secondbash
+        kill -9 $pid_thirdbash
+        nl ./logs/timer.log | tail -1
+    elif [[ $bashline_count == 3 ]]; then
+        kill -9 $pid_firstbash
+        kill -9 $pid_secondbash
+        nl ./logs/timer.log | tail -1
+    elif [[ $bashline_count == 2 ]]; then
+        kill -9 $pid_firstbash
+        nl ./logs/timer.log | tail -1
+    elif [[ $bashline_count == 1 ]]; then
+        nl ./logs/timer.log | tail -1
+    else
+        echo "Done!" > /dev/null
+    fi
+fi
+# Monitor timer
+if [[ $1 = "monitor" && $2 = "timer" ]];then
+    tail -f ./logs/timer.log
 fi
