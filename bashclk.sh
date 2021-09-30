@@ -24,7 +24,7 @@ count_alarm=$(tail -1 ./logs/count.log)
 # Current Version
 current_version()
 {
-    echo "v0.1.5"
+    echo "v0.1.7"
 }
 
 # Help Command
@@ -93,7 +93,8 @@ alarm_count(){
     while [ $HOUR -ge 0 ]; do
     while [ $MIN -ge 0 ]; do
         while [ $SEC -ge 0 ]; do
-            printf "%02d:%02d:%02d\033[0K\r" $HOUR $MIN $SEC
+            # printf "%02d:%02d:%02d\033[0K\r" $HOUR $MIN $SEC
+            printf '%s\r' "$(echo "Alarm will go off after $HOUR hr $MIN min $SEC secs")";
             SEC=$((SEC-1))
             sleep 1
         done
@@ -103,7 +104,7 @@ alarm_count(){
     MIN=59
     HOUR=$((HOUR-1))
     done
-    echo -e " \033[31;5mWake Up!! Wake Up!!! Wake Up!!!! Wake Up!!!\033[0m";
+    echo -e " \033[31;5mWake Up!! Wake Up!!! Wake Up!!!! Wake Up!!! Wake Up!!!\033[0m";
 }
 # Mark the function as exported
 declare -fx alarm_count
@@ -192,7 +193,11 @@ if [[ $1 == "alarm" ]]; then
     get_minutes=$(((timetaken%3600)/60))
     get_seconds=$((timetaken%60))
     get_timer=$((timetaken-1))
-    printf '%s\r' "$(echo "Alarm will go off after $get_hours hrs $get_minutes mins $get_seconds secs")";
+    echo "Alarm will be $get_hours hrs $get_minutes mins $get_seconds secs from now";
     echo $count > ./logs/count.log
-    alarm_count $get_timer | tee ./logs/alarms/alarm$count_alarm.log | tail -1 &
+    alarm_count $get_timer | tee ./logs/alarms/alarm$count_alarm.log | tail -1 &  # put the output in a file and display output once done
+fi
+# Checking alarm
+if [[ $1 == "check" && $2 == "alarm" ]]; then
+    nl ./logs/alarms/alarm$3.log | tail -1
 fi
